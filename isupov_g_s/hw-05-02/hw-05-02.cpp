@@ -25,7 +25,7 @@ std::array<double, 2> accumulate(int &a, int &b, double &step, double &eps) {
     double resA = 0;
     double resR = 0;
     double x;
-    for (int i = 0; i < (std::abs(a) + std::abs(b) / step); i++) {
+    for (int i = 0; i <= (std::abs(a) + std::abs(b)) / step; i++) {
         x = a + i * step;
         double temp = expression(x);
         double compareTemp = compareExpression(x);

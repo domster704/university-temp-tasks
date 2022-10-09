@@ -17,31 +17,23 @@ includelib debug.lib
         one real4 1.0
         zero real4 0.0
         minusOne REAL4 -1.0
-        startReal4 real4 1.0
         
         two word 2
 
 .data
-        doubleDX word 0
-        temp real4 0.0
-        resOfPow real10 0.0
-        resOfFac real4 0.0
-        sum real10 0.0
-        sum4 real4 0.0
-        a word -1
-        b word 1
-        delta real4 0.1
-        eps real4 0.001
+        ; Значение x, которое подставляется в уравнение
+        mainValue REAL4 0.9
+        
+        resInReal4 real4 0.0
         resInStr byte 10 dup(0)
-        x1 REAL4 1.57
         
-        counter word 0
-        
+        ; Идентификаторы для отображения FpuState
         State byte 400 dup (0)
         Caption db "Состояние регистров FPU",0
         
 
 .code
+; Макроопределение для упрощённого показа FpuState
 cMacro MACRO
         push cx
         invoke FpuState, ADDR State, 1
@@ -50,27 +42,23 @@ cMacro MACRO
         pop cx
 endm
 
-pow proc x: REAL4, degree: word
-        PrintDec degree
+; Процедура для возведения в степень вещественного числа
+; Записывает результат в верхний стек Fpu
+pow proc x      :REAL4,
+         degree :word
+
         mov cx, degree
         dec cx
         fld x
+        ; Если степень равна 0, то возвращаем 1
         .if degree == 0
                 finit
                 fld one
                 ret
+        ; Если степень равна 1, то возвращем x
         .elseif degree == 1
                 ret
         .endif
-        fcom zero
-        je retOne
-        jmp other
-retOne:
-        finit
-        fld one
-        pop dx
-        ret
-other:
         mainLoop:
                 fmul x
                 dec cx
@@ -78,9 +66,12 @@ other:
         ret
 pow endp
 
-factorial proc x: word
+; Процедура для подсчёта факториала, который зааписывает результат в виде Real4 в стэк Fpu.
+; Записывает результат в верхний стек Fpu
+factorial proc x :word
+
         local v :real4
-        fld startReal4
+        fld one
         fstp v
         
         push ebx
@@ -91,7 +82,8 @@ factorial proc x: word
         mov ebx, 1
         
         fld v
-        fld startReal4
+        fld one
+        ; Если x равен 0, то возвращаем 1, так как 0! = 1
         .if x == 0
                 ret
         .endif
@@ -104,51 +96,77 @@ factorial proc x: word
         ret
 factorial endp
 
-start:   
-        mov cx, 5
+; Процедура для суммирования членов аналитического ряда
+sumMembersOfAnalyticalSeries proc
+        local counter :word
+        local doubleDX :word
+        local resOfPow :real10
+        local resOfFac :real4
+        local valueForFutureDeleting :real4
+        
+        fld zero
+        fld zero
+        fld zero
+        fstp resOfPow
+        fstp resOfFac
+        fstp valueForFutureDeleting
+        
         mov counter, 0
         mov doubleDX, 0
         
+        push cx
+        mov cx, 5
+        ; Цикл суммирования членов аналитического ряда
         expression:
                 mov ax, counter
                 mul two
                 mov doubleDX, ax
                         
-                PrintDec doubleDX
                 push cx
-                invoke pow, x1, doubleDX
+                invoke pow, mainValue, doubleDX
                 pop cx
                 fstp resOfPow
                 
                 push cx
                 invoke factorial, doubleDX
                 pop cx
-                fstp temp
+                fstp valueForFutureDeleting
                 fstp resOfFac
                 
                 mov ax, counter
                 mov bl, 2
                 div bl
+                ; Замена для (-1)^i
                 .if ah == 0
                         fld resOfPow
                         fdiv resOfFac
-                        fadd sum4
-                        fstp sum4
+                        
+                        fadd resInReal4
+                        fstp resInReal4
                 .elseif
                         fld resOfPow
                         fdiv resOfFac
                         fdiv minusOne
-                        fadd sum4
-                        fstp sum4
+                        
+                        fadd resInReal4
+                        fstp resInReal4
                 .endif
                 
                 inc counter
                 dec cx
                 jne expression
-        fld sum4
+        pop cx
+        ret
+
+sumMembersOfAnalyticalSeries endp
+
+start:  
+        finit
+        call sumMembersOfAnalyticalSeries
+        fld resInReal4
         ;invoke FpuState, ADDR State, 1
         ;invoke MessageBox, 0, addr State, addr Caption, 1
         invoke FpuFLtoA, 0, 14, addr resInStr, SRC1_FPU 
         PrintString resInStr
-        invoke ExitProcess, 0
+        ;invoke ExitProcess, 0
 end start

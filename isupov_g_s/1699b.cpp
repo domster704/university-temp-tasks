@@ -7,17 +7,17 @@ int main() {
     for (int i = 0; i < t; i++) {
         int n, m;
         std::cin >> n >> m;
-        std::array<std::array<int, 51>, 51> a{};
-        a[0][0] = 1;
-        int bC = 0, wC = 0;
-        for (int j = 0; j < n; j++) {
-            for (int k = 0; k < m; k++) {
-                if (j == 0 && k == 0) {
-                    a[1][0] = 0;
-                    a[0][1] = 0;
-                    continue;
-                }
+        int x1 = 1, x2 = 0;
+        int out = 0;
+        for (int j = 1; j <= n; j++) {
+            if (j % 2 == 0) {
+                std::swap(x1, x2);
             }
+            for (int k = 1; k <= m; k++) {
+                out = k % 4 <= 1 ? x1 : x2;
+                std::cout << out << " ";
+            }
+            std::cout << "\n";
         }
     }
 }
